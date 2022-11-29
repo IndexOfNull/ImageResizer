@@ -27,6 +27,8 @@ try:
             args.iter = 5
         else:
             args.iter = int(user_in)
+    else:
+        args.iter = int(args.iter)
 
 except ValueError:
     print("Input validation error")
@@ -112,11 +114,11 @@ def resize_image(pth, *, it=6, max_size=MAX_SIZE_BYTES, lazy=False):
 logging.info("--- Processing Images ---")
 for img in rescale_needed:
     resized = resize_image(img, it=args.iter, max_size=MAX_SIZE_BYTES)
-    buffer = resized.getbuffer()
-    logging.info(f"Resized {img} to {sizeof_fmt(buffer.nbytes)}")
     if resized is None or resized is False:
         logging.warning(f"{img} could not be resized")
         continue
+    buffer = resized.getbuffer()
+    logging.info(f"Resized {img} to {sizeof_fmt(buffer.nbytes)}")
     with open(img, "wb") as f:
         f.write(buffer)
 
