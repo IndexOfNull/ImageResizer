@@ -1,6 +1,6 @@
 import os
 from os import path
-from PIL import Image
+from PIL import Image, ImageOps
 from io import BytesIO
 import logging
 import argparse
@@ -75,6 +75,7 @@ def resize_image(pth, *, it=6, max_size=MAX_SIZE_BYTES, lazy=False):
     scale_factor = 0.5
     step_size = 0.5 # Will be divided by 2 then added/subtracted to scale factor
     img = Image.open(pth)
+    img = ImageOps.exif_transpose(img)
     best_resized = None
 
     logging.debug(f"Processing {pth}")
