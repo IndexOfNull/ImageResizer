@@ -6,18 +6,33 @@ import logging
 import argparse
 
 parser = argparse.ArgumentParser(prog="Image Resizer", description="Cut down on file size!")
-parser.add_argument('input')
+parser.add_argument('input', nargs='*')
 parser.add_argument('-l', '--lazy', default=False, action='store_true', help="Stop querying sizes when a suitable one is found")
 parser.add_argument('--iter', default=5, help="How many sizes to query for each image")
 parser.add_argument('-v', '--verbose', action='count', default=0)
-parser.add_argument('-s', '--size', default=1, type=float, help="Target size (in MB)")
+parser.add_argument('-s', '--size', default=0, type=float, help="Target size (in MB)")
 parser.add_argument('-y', '--yes', action='store_true', help="Automatically bypass in-place warning.")
 
 args = parser.parse_args()
+try:
+    if not args.input:
+        args.input = [input("Enter the file/folder path to resize. (You can drag on drop the file/folder on the terminal window): ")]
+
+    if args.size == 0:
+        args.size = float(input("Enter the maximum size to optimize images for [megabytes]: "))
+except ValueError:
+    print("Input validation error")
+    exit()
 
 IMAGE_EXTENSIONS = ("png", "jpeg", "jpg")
 MAX_SIZE_BYTES = args.size * 1000 * 1000
 get_extension = lambda pth: path.splitext(pth)[1][1:] # Get file extension and cut off preceding period
+
+PIL_FILE_TYPES = {
+    "jpg": "jpeg",
+    "jpeg": "jpeg",
+    "png": "png",
+}
 
 if args.verbose > 0:
     level = logging.DEBUG
@@ -28,19 +43,18 @@ logging.basicConfig(level=level, format="%(message)s")
 
 # Begin the real program!
 
-if not path.exists(args.input):
-    print("File or directory does not exist!")
-    exit()
-
-
 paths = []
 
-if path.isfile(args.input):
-    paths = [args.input]
-else:
-    for (root, dirs, files) in os.walk(args.input_dir, topdown=True):
-        for file in files:
-            paths.append(path.join(root, file))
+for input_directory in args.input:
+    if not path.exists(input_directory):
+        print(f"{input_directory} does not exist")
+        exit()
+    elif path.isfile(input_directory):
+        paths.append(input_directory)
+    else:
+        for (root, dirs, files) in os.walk(input_directory, topdown=True):
+            for file in files:
+                paths.append(path.join(root, file))
 
 image_paths = list(filter(lambda x: get_extension(x) in IMAGE_EXTENSIONS, paths))
 rescale_needed = list(filter(lambda x: path.getsize(x) > MAX_SIZE_BYTES, image_paths))
@@ -63,6 +77,11 @@ def resize_image(pth, *, it=6, max_size=MAX_SIZE_BYTES, lazy=False):
     original_size = path.getsize(pth)
     if original_size <= max_size:
         return False
+
+    file_ext = get_extension(pth).lower()
+    if not file_ext in PIL_FILE_TYPES:
+        logging.error(f"{pth} does not have a supported file extention.")
+        return False
     
     scale_factor = 0.5
     step_size = 0.5 # Will be divided by 2 then added/subtracted to scale factor
@@ -76,7 +95,7 @@ def resize_image(pth, *, it=6, max_size=MAX_SIZE_BYTES, lazy=False):
         resized = img.resize(new_size)
 
         resized_bio = BytesIO()
-        resized.save(resized_bio, get_extension(pth))
+        resized.save(resized_bio, file_ext)
         resized_size = resized_bio.getbuffer().nbytes
         
         logging.debug(f"+ Testing size {new_size}. Result: {sizeof_fmt(resized_size)}")
