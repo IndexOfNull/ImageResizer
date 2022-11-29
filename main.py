@@ -4,6 +4,10 @@ from PIL import Image, ImageOps
 from io import BytesIO
 import logging
 import argparse
+import colorama
+from logging_formatter import CustomFormatter
+
+colorama.init()
 
 parser = argparse.ArgumentParser(prog="Image Resizer", description="Cut down on file size!")
 parser.add_argument('input', nargs='*')
@@ -14,6 +18,18 @@ parser.add_argument('-s', '--size', default=0, type=float, help="Target size (in
 parser.add_argument('-y', '--yes', action='store_true', help="Automatically bypass in-place warning.")
 
 args = parser.parse_args()
+
+if args.verbose > 0:
+    level = logging.DEBUG
+else:
+    level = logging.INFO
+
+logger = logging.getLogger("ImageResizer")
+logger.setLevel(level)
+logging_ch = logging.StreamHandler()
+logging_ch.setFormatter(CustomFormatter())
+logger.addHandler(logging_ch)
+
 try:
     if not args.input:
         args.input = [input("Enter the file/folder path to resize. (You can drag on drop the file/folder on the terminal window): ").strip('"')]
@@ -21,19 +37,12 @@ try:
     if args.size == 0:
         args.size = float(input("Enter the maximum size to optimize images for [megabytes]: "))
 except ValueError:
-    print("Input validation error")
+    logger.error("Input validation error")
     exit()
 
 IMAGE_EXTENSIONS = ("png", "jpeg", "jpg")
 MAX_SIZE_BYTES = args.size * 1000 * 1000
 get_extension = lambda pth: path.splitext(pth)[1][1:] # Get file extension and cut off preceding period
-
-if args.verbose > 0:
-    level = logging.DEBUG
-else:
-    level = logging.INFO
-
-logging.basicConfig(level=level, format="%(message)s")
 
 # Begin the real program!
 
@@ -41,7 +50,7 @@ paths = []
 
 for input_directory in args.input:
     if not path.exists(input_directory):
-        print(f"{input_directory} does not exist")
+        logger.error(f"{input_directory} does not exist")
         exit()
     elif path.isfile(input_directory):
         paths.append(input_directory)
@@ -56,7 +65,7 @@ rescale_needed = list(filter(lambda x: path.getsize(x) > MAX_SIZE_BYTES, image_p
 if not args.yes:
     response = input("Warning! This will modify files in-place. Be sure to make a backup before running! Continue [y/N]? ")
     if response.lower() not in ("y", "yes"):
-        print("Exiting...")
+        logger.info("Exiting...")
         exit()
 
 def sizeof_fmt(num, suffix="B"):
@@ -78,7 +87,7 @@ def resize_image(pth, *, it=6, max_size=MAX_SIZE_BYTES, lazy=False):
     img = ImageOps.exif_transpose(img)
     best_resized = None
 
-    logging.debug(f"Processing {pth}")
+    logger.debug(f"Processing {pth}")
 
     for i in range(it):
         new_size = (int(img.width * scale_factor), int(img.height * scale_factor))
@@ -88,7 +97,7 @@ def resize_image(pth, *, it=6, max_size=MAX_SIZE_BYTES, lazy=False):
         resized.save(resized_bio, img.format)
         resized_size = resized_bio.getbuffer().nbytes
         
-        logging.debug(f"+ Testing size {new_size}. Result: {sizeof_fmt(resized_size)}")
+        logger.debug(f"+ Testing size {new_size}. Result: {sizeof_fmt(resized_size)}")
 
         step_size /= 2
         if resized_size > max_size: # Still too big
@@ -100,20 +109,20 @@ def resize_image(pth, *, it=6, max_size=MAX_SIZE_BYTES, lazy=False):
             break
     return best_resized
 
-logging.info("--- Processing Images ---")
+logger.info("--- Processing Images ---")
 for img in rescale_needed:
     resized = resize_image(img, it=args.iter, max_size=MAX_SIZE_BYTES)
     buffer = resized.getbuffer()
-    logging.info(f"Resized {img} to {sizeof_fmt(buffer.nbytes)}")
+    logger.info(f"Resized {img} to {sizeof_fmt(buffer.nbytes)}")
     if resized is None or resized is False:
-        logging.warning(f"{img} could not be resized")
+        logger.warning(f"{img} could not be resized")
         continue
     with open(img, "wb") as f:
         f.write(buffer)
 
-logging.info("-------------------------")
+logger.info("-------------------------")
 
-logging.info(f"Finished processing {len(image_paths)} images. Resized {len(rescale_needed)} images.")
+logger.info(f"Finished processing {len(image_paths)} images. Resized {len(rescale_needed)} images.")
 
 if not args.yes:
     input("Press enter to exit...")
