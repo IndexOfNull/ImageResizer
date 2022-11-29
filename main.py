@@ -16,7 +16,7 @@ parser.add_argument('-y', '--yes', action='store_true', help="Automatically bypa
 args = parser.parse_args()
 try:
     if not args.input:
-        args.input = [input("Enter the file/folder path to resize. (You can drag on drop the file/folder on the terminal window): ")]
+        args.input = [input("Enter the file/folder path to resize. (You can drag on drop the file/folder on the terminal window): ").strip('"')]
 
     if args.size == 0:
         args.size = float(input("Enter the maximum size to optimize images for [megabytes]: "))
@@ -124,3 +124,6 @@ for img in rescale_needed:
 logging.info("-------------------------")
 
 logging.info(f"Finished processing {len(image_paths)} images. Resized {len(rescale_needed)} images.")
+
+if not args.yes:
+    input("Press enter to exit...")
