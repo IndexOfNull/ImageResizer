@@ -28,15 +28,15 @@ logging.basicConfig(level=level, format="%(message)s")
 
 # Begin the real program!
 
-if not path.exists(args.filename):
+if not path.exists(args.input):
     print("File or directory does not exist!")
     exit()
 
 
 paths = []
 
-if path.isfile(args.filename):
-    paths = [args.filename]
+if path.isfile(args.input):
+    paths = [args.input]
 else:
     for (root, dirs, files) in os.walk(args.input_dir, topdown=True):
         for file in files:
