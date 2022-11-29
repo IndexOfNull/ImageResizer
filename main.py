@@ -27,6 +27,7 @@ else:
 logger = logging.getLogger("ImageResizer")
 logger.setLevel(level)
 logging_ch = logging.StreamHandler()
+logging_ch.setLevel(logging.DEBUG)
 logging_ch.setFormatter(CustomFormatter())
 logger.addHandler(logging_ch)
 
@@ -127,11 +128,11 @@ for img in rescale_needed:
         logger.warning(f"{img} could not be resized")
         continue
     buffer = resized.getbuffer()
-    logging.info(f"Resized {img} to {sizeof_fmt(buffer.nbytes)}")
+    logger.info(f"Resized {img} to {sizeof_fmt(buffer.nbytes)}")
     with open(img, "wb") as f:
         f.write(buffer)
 
-logger.info("-------------------------")
+logger.info(" ------------------------- ")
 
 logger.info(f"Finished processing {len(image_paths)} images. Resized {len(rescale_needed)} images.")
 
