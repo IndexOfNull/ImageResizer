@@ -12,7 +12,7 @@ colorama.init()
 parser = argparse.ArgumentParser(prog="Image Resizer", description="Cut down on file size!")
 parser.add_argument('input', nargs='*')
 parser.add_argument('-l', '--lazy', default=False, action='store_true', help="Stop querying sizes when a suitable one is found")
-parser.add_argument('--iter', default=5, help="How many sizes to query for each image")
+parser.add_argument('--iter', help="How many sizes to query for each image")
 parser.add_argument('-v', '--verbose', action='count', default=0)
 parser.add_argument('-s', '--size', default=0, type=float, help="Target size (in MB)")
 parser.add_argument('-y', '--yes', action='store_true', help="Automatically bypass in-place warning.")
@@ -35,7 +35,17 @@ try:
         args.input = [input("Enter the file/folder path to resize. (You can drag on drop the file/folder on the terminal window): ").strip('"')]
 
     if args.size == 0:
-        args.size = float(input("Enter the maximum size to optimize images for [megabytes]: "))
+        args.size = float(input("Enter the maximum size to optimize images for (in megabytes): "))
+
+    if not args.iter:
+        user_in = input("How many iterations for each image? Larger values will produce images closer to the desired size, but will take longer [default=5]: ")
+        if user_in == '':
+            args.iter = 5
+        else:
+            args.iter = int(user_in)
+    else:
+        args.iter = int(args.iter)
+
 except ValueError:
     logger.error("Input validation error")
     exit()
@@ -84,6 +94,7 @@ def resize_image(pth, *, it=6, max_size=MAX_SIZE_BYTES, lazy=False):
     scale_factor = 0.5
     step_size = 0.5 # Will be divided by 2 then added/subtracted to scale factor
     img = Image.open(pth)
+    img_format = img.format
     img = ImageOps.exif_transpose(img)
     best_resized = None
 
@@ -94,7 +105,7 @@ def resize_image(pth, *, it=6, max_size=MAX_SIZE_BYTES, lazy=False):
         resized = img.resize(new_size)
 
         resized_bio = BytesIO()
-        resized.save(resized_bio, img.format)
+        resized.save(resized_bio, img_format)
         resized_size = resized_bio.getbuffer().nbytes
         
         logger.debug(f"+ Testing size {new_size}. Result: {sizeof_fmt(resized_size)}")
@@ -112,11 +123,11 @@ def resize_image(pth, *, it=6, max_size=MAX_SIZE_BYTES, lazy=False):
 logger.info("--- Processing Images ---")
 for img in rescale_needed:
     resized = resize_image(img, it=args.iter, max_size=MAX_SIZE_BYTES)
-    buffer = resized.getbuffer()
-    logger.info(f"Resized {img} to {sizeof_fmt(buffer.nbytes)}")
     if resized is None or resized is False:
         logger.warning(f"{img} could not be resized")
         continue
+    buffer = resized.getbuffer()
+    logging.info(f"Resized {img} to {sizeof_fmt(buffer.nbytes)}")
     with open(img, "wb") as f:
         f.write(buffer)
 
