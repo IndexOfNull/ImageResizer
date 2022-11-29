@@ -28,12 +28,6 @@ IMAGE_EXTENSIONS = ("png", "jpeg", "jpg")
 MAX_SIZE_BYTES = args.size * 1000 * 1000
 get_extension = lambda pth: path.splitext(pth)[1][1:] # Get file extension and cut off preceding period
 
-PIL_FILE_TYPES = {
-    "jpg": "jpeg",
-    "jpeg": "jpeg",
-    "png": "png",
-}
-
 if args.verbose > 0:
     level = logging.DEBUG
 else:
@@ -78,11 +72,6 @@ def resize_image(pth, *, it=6, max_size=MAX_SIZE_BYTES, lazy=False):
     if original_size <= max_size:
         return False
 
-    file_ext = get_extension(pth).lower()
-    if not file_ext in PIL_FILE_TYPES:
-        logging.error(f"{pth} does not have a supported file extention.")
-        return False
-    
     scale_factor = 0.5
     step_size = 0.5 # Will be divided by 2 then added/subtracted to scale factor
     img = Image.open(pth)
@@ -95,7 +84,7 @@ def resize_image(pth, *, it=6, max_size=MAX_SIZE_BYTES, lazy=False):
         resized = img.resize(new_size)
 
         resized_bio = BytesIO()
-        resized.save(resized_bio, file_ext)
+        resized.save(resized_bio, img.format)
         resized_size = resized_bio.getbuffer().nbytes
         
         logging.debug(f"+ Testing size {new_size}. Result: {sizeof_fmt(resized_size)}")
