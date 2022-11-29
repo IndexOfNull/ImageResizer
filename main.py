@@ -4,10 +4,7 @@ from PIL import Image, ImageOps
 from io import BytesIO
 import logging
 import argparse
-import colorama
 from logging_formatter import CustomFormatter
-
-colorama.init()
 
 parser = argparse.ArgumentParser(prog="Image Resizer", description="Cut down on file size!")
 parser.add_argument('input', nargs='*')
