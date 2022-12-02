@@ -9,7 +9,7 @@ from logging_formatter import CustomFormatter
 
 colorama.init()
 
-parser = argparse.ArgumentParser(prog="Image Resizer", description="Cut down on file size!")
+parser = argparse.ArgumentParser(prog="Image Resizer", description="Cut down on file size!", epilog="Created by Damien Kazewych")
 parser.add_argument('input', nargs='*')
 parser.add_argument('-l', '--lazy', default=False, action='store_true', help="Stop querying sizes when a suitable one is found")
 parser.add_argument('--iter', help="How many sizes to query for each image")
@@ -33,7 +33,7 @@ logger.addHandler(logging_ch)
 
 try:
     if not args.input:
-        args.input = [input("Enter the file/folder path to resize. (You can drag on drop the file/folder on the terminal window): ").strip('"')]
+        args.input = [input("Enter the file/folder path to resize. (You can drag and drop the file/folder on the terminal window): ").strip('"')]
 
     if args.size == 0:
         args.size = float(input("Enter the maximum size to optimize images for (in megabytes): "))
